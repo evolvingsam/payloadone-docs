@@ -1,7 +1,7 @@
 {
   "name": "payloadone-docs",
-  "runtime": "static",
+  "runtime": "python",
   "buildCommand": "",
-  "startCommand": "",
-  "port": 80
+  "startCommand": "python -m http.server $PORT",
+  "port": 8080
 }
