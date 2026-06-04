@@ -221,28 +221,46 @@
           </div>
 
           <p class="section__subtitle">
-            The live demo is a hosted FastAPI app that has PayloadOne pre-configured.
-            Point your Paystack or Flutterwave test webhook URL at it and watch
-            events arrive in real time — no local setup required.
-          </p>
+            The live demo is already running at
+            <strong>https://payloadone.quikdb.net</strong> with test credentials
+            pre-configured. You do not need to clone anything or set up a local
+            environment. Just run the commands below and watch events arrive.
+          </p
 
           <div class="steps">
 
             <div class="step">
               <div class="step__num">01</div>
               <div class="step__body">
-                <p class="step__title">Get your Paystack test secret key</p>
+                <p class="step__title">Send a Paystack webhook to the live demo</p>
                 <p class="step__desc">
-                  Log in to your Paystack account. Go to
-                  <strong>Settings → API Keys &amp; Webhooks</strong>.
-                  Copy the value under <strong>Secret Key</strong> in the
-                  Test section. It starts with <code>sk_test_</code>.
+                  The demo signs the payload for you — no Paystack credentials needed.
+                  Run both commands in the same terminal.
                 </p>
-                <div class="callout callout--info">
-                  <span class="callout__label">Note</span>
-                  If you do not have a Paystack account, register free at
-                  dashboard.paystack.com. No business verification is needed
-                  for test mode.
+                <div class="code-block">
+                  <div class="code-block__header">
+                    <span class="code-block__lang">bash</span>
+                    <button class="code-block__copy">COPY</button>
+                  </div>
+                  <pre><code><span class="tok-comment"># Build the payload</span>
+            <span class="tok-prompt">$ </span>PAYLOAD=<span class="tok-str">'{"event":"charge.success","data":{"reference":"ref_001","amount":5000,"currency":"NGN","customer":{"email":"test@example.com","first_name":"Ada","last_name":"Obi"},"metadata":{}}}'</span>
+
+            <span class="tok-comment"># Step 1 — get a valid signature from the demo itself</span>
+            <span class="tok-prompt">$ </span>SIG=$(curl -s -X POST https://payloadone.quikdb.net/dev/sign/paystack \
+              -H <span class="tok-str">"Content-Type: application/json"</span> \
+              -d <span class="tok-str">"$PAYLOAD"</span> | python3 -c <span class="tok-str">"import sys,json; print(json.load(sys.stdin)['x-paystack-signature'])"</span>)
+
+            <span class="tok-comment"># Step 2 — send the signed webhook</span>
+            <span class="tok-prompt">$ </span>curl -s -X POST https://payloadone.quikdb.net/webhooks/paystack \
+              -H <span class="tok-str">"Content-Type: application/json"</span> \
+              -H <span class="tok-str">"x-paystack-signature: $SIG"</span> \
+              -d <span class="tok-str">"$PAYLOAD"</span></code></pre>
+                </div>
+                <div class="response-grid">
+                  <div class="response-card">
+                    <div class="response-card__status"><span class="badge badge--200">200 OK</span></div>
+                    <pre class="response-card__body">{"status": "acknowledged"}</pre>
+                  </div>
                 </div>
               </div>
             </div>
@@ -250,39 +268,63 @@
             <div class="step">
               <div class="step__num">02</div>
               <div class="step__body">
-                <p class="step__title">Get your Flutterwave secret hash</p>
+                <p class="step__title">Send a Flutterwave webhook to the live demo</p>
                 <p class="step__desc">
-                  Log in to your Flutterwave account. Go to
-                  <strong>Settings → Webhooks</strong>.
-                  Under <strong>Secret Hash</strong>, enter any string of your
-                  choice — for example <code>my_test_hash_123</code> — and save.
-                  This exact string is what PayloadOne compares against the
-                  <code>verif-hash</code> header on every inbound request.
+                  The live demo's Flutterwave hash is <code>payloadone_test</code>.
+                  Use it verbatim in the <code>verif-hash</code> header.
                 </p>
+                <div class="code-block">
+                  <div class="code-block__header">
+                    <span class="code-block__lang">bash — save as send_flw.py and run with python3 send_flw.py</span>
+                    <button class="code-block__copy">COPY</button>
+                  </div>
+                  <pre><code><span class="tok-kw">import</span> urllib.request, json
+
+          url = <span class="tok-str">"https://payloadone.quikdb.net/webhooks/flutterwave"</span>
+          payload = {
+              <span class="tok-str">"event"</span>: <span class="tok-str">"charge.completed"</span>,
+              <span class="tok-str">"data"</span>: {
+                  <span class="tok-str">"id"</span>: <span class="tok-num">1</span>,
+                  <span class="tok-str">"tx_ref"</span>: <span class="tok-str">"ref_live_002"</span>,
+                  <span class="tok-str">"amount"</span>: <span class="tok-num">50.00</span>,
+                  <span class="tok-str">"currency"</span>: <span class="tok-str">"NGN"</span>,
+                  <span class="tok-str">"status"</span>: <span class="tok-str">"successful"</span>,
+                  <span class="tok-str">"customer"</span>: {<span class="tok-str">"email"</span>: <span class="tok-str">"test@example.com"</span>, <span class="tok-str">"name"</span>: <span class="tok-str">"Ada Obi"</span>},
+                  <span class="tok-str">"meta"</span>: {},
+              },
+          }
+          body = json.dumps(payload).encode()
+          req = urllib.request.Request(url, data=body, method=<span class="tok-str">"POST"</span>)
+          req.add_header(<span class="tok-str">"Content-Type"</span>, <span class="tok-str">"application/json"</span>)
+          req.add_header(<span class="tok-str">"verif-hash"</span>, <span class="tok-str">"payloadone_test"</span>)
+          <span class="tok-kw">try</span>:
+              <span class="tok-kw">with</span> urllib.request.urlopen(req) <span class="tok-kw">as</span> r:
+                  <span class="tok-fn">print</span>(<span class="tok-str">"Status:"</span>, r.status, r.read().decode())
+          <span class="tok-kw">except</span> urllib.error.HTTPError <span class="tok-kw">as</span> e:
+              <span class="tok-fn">print</span>(<span class="tok-str">"Error:"</span>, e.code, e.read().decode())</code></pre>
+                </div>
               </div>
             </div>
 
             <div class="step">
               <div class="step__num">03</div>
               <div class="step__body">
-                <p class="step__title">Register your webhook URLs</p>
+                <p class="step__title">Check that your events arrived</p>
                 <p class="step__desc">
-                  In each dashboard, set the webhook URL to the live demo endpoints below.
+                  Hit the <code>/events</code> endpoint to see everything the demo received.
                 </p>
-                <div class="endpoint">
-                  <span class="endpoint__method">POST</span>
-                  <span class="endpoint__path">https://payloadone.quikdb.net/webhooks/paystack</span>
+                <div class="code-block">
+                  <div class="code-block__header">
+                    <span class="code-block__lang">bash</span>
+                    <button class="code-block__copy">COPY</button>
+                  </div>
+                  <pre><code><span class="tok-prompt">$ </span>curl https://payloadone.quikdb.net/events</code></pre>
                 </div>
-                <div class="endpoint">
-                  <span class="endpoint__method">POST</span>
-                  <span class="endpoint__path">https://payloadone.quikdb.net/webhooks/flutterwave</span>
-                </div>
-                <div class="callout callout--warn">
-                  <span class="callout__label">Important</span>
-                  The live demo uses its own configured test credentials.
-                  Webhooks from your dashboard will only verify correctly
-                  if they are sent in test mode using the demo's pre-configured keys.
-                  For testing with your own keys, run the demo locally — see Section 03.
+                <div class="callout callout--info">
+                  <span class="callout__label">Interactive docs</span>
+                  You can also test every endpoint visually at
+                  <strong>https://payloadone.quikdb.net/docs</strong> —
+                  FastAPI's built-in Swagger UI, no terminal needed.
                 </div>
               </div>
             </div>
@@ -411,6 +453,12 @@
             send to your server. Run these in a second terminal while the
             server is running.
           </p>
+          <div class="callout callout--info">
+            <span class="callout__label">Which URL to use</span>
+            Replace <code>http://localhost:8000</code> with
+            <code>https://payloadone.quikdb.net</code> if you are testing
+            against the hosted demo instead of a local server.
+          </div>
 
           <div class="steps">
 
