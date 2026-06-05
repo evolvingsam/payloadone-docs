@@ -297,6 +297,7 @@
           req = urllib.request.Request(url, data=body, method=<span class="tok-str">"POST"</span>)
           req.add_header(<span class="tok-str">"Content-Type"</span>, <span class="tok-str">"application/json"</span>)
           req.add_header(<span class="tok-str">"verif-hash"</span>, <span class="tok-str">"payloadone_test"</span>)
+          req.add_header(<span class="tok-str">"User-Agent"</span>, <span class="tok-str">"PayloadOne-Test-Client/1.0"</span>)
           <span class="tok-kw">try</span>:
               <span class="tok-kw">with</span> urllib.request.urlopen(req) <span class="tok-kw">as</span> r:
                   <span class="tok-fn">print</span>(<span class="tok-str">"Status:"</span>, r.status, r.read().decode())
